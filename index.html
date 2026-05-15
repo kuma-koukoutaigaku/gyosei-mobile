@@ -130,8 +130,15 @@
   </div>
   <div class="start-body">
     <div class="section-card">
-      <h3 style="margin: 0 0 12px 0; font-size: 1.1rem; color: var(--text);">カテゴリを選択</h3>
+      <h3 style="margin: 0 0 12px 0; font-size: 1.1rem; color: var(--text);">穴埋め問題</h3>
       <div id="fb-subject-accordion">
+        <div style="text-align: center; padding: 12px;">読み込み中...</div>
+      </div>
+    </div>
+    
+    <div class="section-card" style="margin-top: 16px;">
+      <h3 style="margin: 0 0 12px 0; font-size: 1.1rem; color: var(--text);">短文式記述（記述対策）</h3>
+      <div id="desc-subject-accordion">
         <div style="text-align: center; padding: 12px;">読み込み中...</div>
       </div>
     </div>
@@ -181,7 +188,15 @@
 
 <script>
 let FB_QUESTIONS = [];
+let DESC_QUESTIONS = [];
+
+let menuState = {
+  fb: { category: 'all', blockSize: 10 },
+  desc: { category: 'all', blockSize: 10 }
+};
+
 let fbState = {
+  mode: 'fb',
   category: 'all',
   blockSize: 10,
   filtered: [],
@@ -197,25 +212,42 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 }
 
+function getFbData() {
+  return fbState.mode === 'desc' ? DESC_QUESTIONS : FB_QUESTIONS;
+}
+
 async function loadData() {
   try {
-    const res = await fetch('fill_blanks.json');
+    const res = await fetch('fill_blanks.json?v=' + Date.now());
     FB_QUESTIONS = await res.json();
-    renderFbSelector();
+    
+    const resDesc = await fetch('kijutsu_blanks.json?v=' + Date.now());
+    DESC_QUESTIONS = await resDesc.json();
+    
+    renderFbSelector('fb');
+    renderFbSelector('desc');
   } catch(e) {
     document.getElementById('fb-subject-accordion').innerHTML = 'データの読み込みに失敗しました。';
   }
 }
 
-function renderFbSelector() {
-  const container = document.getElementById('fb-subject-accordion');
+function renderFbSelector(mode = 'fb') {
+  const containerId = mode === 'fb' ? 'fb-subject-accordion' : 'desc-subject-accordion';
+  const container = document.getElementById(containerId);
+  const data = mode === 'fb' ? FB_QUESTIONS : DESC_QUESTIONS;
+  
+  if (data.length === 0) {
+    container.innerHTML = '<div style="text-align: center; padding: 12px;">問題がありません</div>';
+    return;
+  }
+  
   const cats = new Set();
-  FB_QUESTIONS.forEach(q => cats.add(q.category));
+  data.forEach(q => cats.add(q.category));
   
   const catBtns = ['all', ...Array.from(cats)].map(c => {
     const label = c === 'all' ? '全範囲' : c;
-    const cnt = c === 'all' ? FB_QUESTIONS.length : FB_QUESTIONS.filter(q => q.category === c).length;
-    return `<button class="cat-pill${fbState.category === c ? ' active' : ''}" data-fbcat="${c}">
+    const cnt = c === 'all' ? data.length : data.filter(q => q.category === c).length;
+    return `<button class="cat-pill${menuState[mode].category === c ? ' active' : ''}" data-cat="${c}">
       ${label} <span class="pill-count">${cnt}</span>
     </button>`;
   }).join('');
@@ -224,7 +256,7 @@ function renderFbSelector() {
   const blockSizes = [10, 20, 50, 0];
   const blockHtml = blockSizes.map(n => {
     const label = n === 0 ? '全問' : `${n}問`;
-    return `<button class="block-btn${fbState.blockSize === n ? ' active' : ''}" data-fbn="${n}">${label}</button>`;
+    return `<button class="block-btn${menuState[mode].blockSize === n ? ' active' : ''}" data-n="${n}">${label}</button>`;
   }).join('');
 
   container.innerHTML = `
@@ -234,21 +266,26 @@ function renderFbSelector() {
       ${blockHtml}
     </div>
     <div style="margin-top:24px;">
-      <button id="btn-start-fb" class="btn-start" style="width:100%; background-color: #3b82f6;">▶ 問題を解く</button>
+      <button class="btn-start btn-seq" style="width:100%; background-color: #3b82f6;">▶ 問題を解く</button>
     </div>
   `;
 
   container.querySelectorAll('.cat-pill').forEach(btn => {
-    btn.addEventListener('click', () => { fbState.category = btn.dataset.fbcat; renderFbSelector(); });
+    btn.addEventListener('click', () => { menuState[mode].category = btn.dataset.cat; renderFbSelector(mode); });
   });
   container.querySelectorAll('.block-btn').forEach(btn => {
-    btn.addEventListener('click', () => { fbState.blockSize = parseInt(btn.dataset.fbn, 10); renderFbSelector(); });
+    btn.addEventListener('click', () => { menuState[mode].blockSize = parseInt(btn.dataset.n, 10); renderFbSelector(mode); });
   });
-  container.querySelector('#btn-start-fb').addEventListener('click', () => startFbQuizSeq());
+  container.querySelector('.btn-seq').addEventListener('click', () => startFbQuizSeq(mode));
 }
 
-function startFbQuizSeq() {
-  let pool = fbState.category === 'all' ? FB_QUESTIONS : FB_QUESTIONS.filter(q => q.category === fbState.category);
+function startFbQuizSeq(mode) {
+  fbState.mode = mode;
+  fbState.category = menuState[mode].category;
+  fbState.blockSize = menuState[mode].blockSize;
+  
+  const data = getFbData();
+  let pool = fbState.category === 'all' ? data : data.filter(q => q.category === fbState.category);
   // シャッフル
   pool = [...pool].sort(() => Math.random() - 0.5);
   const n = fbState.blockSize === 0 ? pool.length : fbState.blockSize;
@@ -329,7 +366,7 @@ document.getElementById('fb-main-action-btn').addEventListener('click', () => {
         fbState.round++;
         renderFbQuestion();
       } else {
-        alert('このブロックの穴埋め問題が完了しました！');
+        alert('このブロックの問題が完了しました！');
         showScreen('screen-start');
       }
     } else {
@@ -367,7 +404,7 @@ document.getElementById('fb-btn-wrong').addEventListener('click', () => {
         fbState.round++;
         renderFbQuestion();
       } else {
-        alert('このブロックの穴埋め問題が完了しました！');
+        alert('このブロックの問題が完了しました！');
         showScreen('screen-start');
       }
     } else {
