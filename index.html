@@ -158,10 +158,22 @@
       <div class="category-row" style="display:flex; justify-content:space-between; margin-bottom:12px;">
         <div id="fb-category-badge" style="background-color: #f8fafc; border: 1px solid #e2e8f0; color: #475569; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;"></div>
       </div>
-      <div id="fb-question-text" class="card-text" style="font-size: 1.15rem; line-height: 2.2; color: var(--text);">
-        <!-- JSで生成 -->
+
+      <!-- シチュエーション（問題文） -->
+      <div id="fb-problem-area" style="display:none; background:#eff6ff; border-radius:10px; padding:14px; margin-bottom:16px; border-left: 4px solid #3b82f6;">
+        <div style="font-size:0.78rem; font-weight:bold; color:#2563eb; margin-bottom:6px; letter-spacing:0.05em;">【問　題】</div>
+        <div id="fb-problem-text" style="font-size: 1.05rem; line-height: 1.9; color:#1e3a5f;"></div>
+      </div>
+
+      <!-- 解答（穴埋め） -->
+      <div style="background:#f0fdf4; border-radius:10px; padding:14px; border-left: 4px solid #10b981;">
+        <div style="font-size:0.78rem; font-weight:bold; color:#059669; margin-bottom:6px; letter-spacing:0.05em;">【解　答】</div>
+        <div id="fb-question-text" class="card-text" style="font-size: 1.1rem; line-height: 2.4; color: var(--text);">
+          <!-- JSで生成 -->
+        </div>
       </div>
     </div>
+
 
     <!-- 下部固定コントロール群 -->
     <div style="margin-top: auto;">
@@ -308,6 +320,17 @@ function renderFbQuestion() {
   document.getElementById('fb-progress-label').textContent = `${fbState.index + 1} / ${fbState.filtered.length}` + (fbState.round > 1 ? ` (復習)` : '');
   document.getElementById('fb-category-badge').textContent = q.category;
 
+  // 問題文エリア（shortdescモードのみ表示）
+  const problemArea = document.getElementById('fb-problem-area');
+  const problemText = document.getElementById('fb-problem-text');
+  if (q.problem) {
+    problemText.textContent = q.problem;
+    problemArea.style.display = 'block';
+  } else {
+    problemArea.style.display = 'none';
+  }
+
+  // 解答の穴埋み生成
   let preciseHtml = q.question;
   if (q.blanks && q.blanks.length > 0) {
      q.blanks.forEach((b, i) => {
@@ -318,15 +341,7 @@ function renderFbQuestion() {
         }
      });
   }
-
-  let finalHtml = '';
-  if (q.problem) {
-    finalHtml += `<div style="font-weight:bold; color:var(--primary); margin-bottom:8px; font-size: 0.95rem;">【問題】</div><div style="margin-bottom:24px;">${q.problem}</div>`;
-    finalHtml += `<div style="font-weight:bold; color:#10b981; margin-bottom:8px; font-size: 0.95rem;">【解答】</div>`;
-  }
-  finalHtml += `<div>${preciseHtml}</div>`;
-
-  document.getElementById('fb-question-text').innerHTML = finalHtml;
+  document.getElementById('fb-question-text').innerHTML = preciseHtml;
   updateFbMainButton();
 }
 
