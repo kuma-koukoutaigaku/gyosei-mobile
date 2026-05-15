@@ -318,7 +318,15 @@ function renderFbQuestion() {
         }
      });
   }
-  document.getElementById('fb-question-text').innerHTML = preciseHtml;
+
+  let finalHtml = '';
+  if (q.problem) {
+    finalHtml += `<div style="font-weight:bold; color:var(--primary); margin-bottom:8px; font-size: 0.95rem;">【問題】</div><div style="margin-bottom:24px;">${q.problem}</div>`;
+    finalHtml += `<div style="font-weight:bold; color:#10b981; margin-bottom:8px; font-size: 0.95rem;">【解答】</div>`;
+  }
+  finalHtml += `<div>${preciseHtml}</div>`;
+
+  document.getElementById('fb-question-text').innerHTML = finalHtml;
   updateFbMainButton();
 }
 
